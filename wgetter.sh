@@ -1,12 +1,15 @@
 #!/bin/bash
 
 # Global vars
-configFile=~/wgetter.conf
+configFile=~/wgetter.cfg
 logFile=~/wgetter.log
 downloadFile=~/wgetter.in
 downloadDir=~/Downloads
 delayTime=10
+
+# System vars
 currentLine=""
+wgetWarning="Warning: Resuming from previous wget process\n"
 
 # Functions
 readConfig() {
@@ -25,6 +28,12 @@ printStatus() {
    nextLine=$(tail -n -2 $logFile | head -n 1)
    if [[ $currentLine == $nextLine ]]; then
       echo "Warning: No progress made"
+   elif echo $nextLine | grep -q "\bsaved\b"; then
+      echo "Success"
+      tail -n +2 $downloadFile > $downloadFile
+   elif echo $nextLine | grep -q "\bretrieved\b"; then
+      echo "Warning: File already downloaded"
+      tail -n +2 $downloadFile > $downloadFile
    else
       echo $nextLine
       currentLine=$nextLine
@@ -34,24 +43,25 @@ main() {
    readConfig
    while true; do
       if ps | grep -q "\bwget\b"; then
-         echo "Warning: wget is currently running"
+         echo -ne $wgetWarning
       else
          if [[ ! -e $downloadFile ]]; then
             touch $downloadFile
          fi
          url=$(head -n 1 $downloadFile)
          if [[ $url == "" ]]; then
-            echo "Finished"
+            echo "Finished with all URLs"
             break
          fi
          echo "Starting: $url"
          wget --tries=0 -c -o $logFile -P $downloadDir/ $url &
       fi
+      wgetWarning=""
       printStatus
       sleep $delayTime
    done
 }
 
 # Program
-trap "writeConfig" SIGHUP SIGINT SIGTERM
+trap "writeConfig && exit" SIGHUP SIGINT SIGTERM
 main
