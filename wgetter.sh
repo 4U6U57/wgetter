@@ -4,6 +4,7 @@
 configFile=~/wgetter.cfg
 logFile=~/wgetter.log
 downloadFile=~/wgetter.in
+downloadFileTemp='$downloadFile'.swp
 downloadDir=~/Downloads
 delayTime=10
 
@@ -30,10 +31,12 @@ printStatus() {
       echo "Warning: No progress made"
    elif echo $nextLine | grep -q "\bsaved\b"; then
       echo "Success"
-      tail -n +2 $downloadFile > $downloadFile
+      tail -n +2 $downloadFile > $downloadFileTemp
+      mv $downloadFileTemp $downloadFile
    elif echo $nextLine | grep -q "\bretrieved\b"; then
       echo "Warning: File already downloaded"
       tail -n +2 $downloadFile > $downloadFile
+      mv $downloadFileTemp $downloadFile
    else
       echo $nextLine
       currentLine=$nextLine
